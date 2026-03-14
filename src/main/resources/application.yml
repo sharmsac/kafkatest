@@ -1,0 +1,41 @@
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      group-id: logging-consumer-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 500
+      fetch-min-size: 524288
+      fetch-max-wait: 500
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.platform.logging.model"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: 1
+      retries: 3
+      batch-size: 65536
+      linger-ms: 5
+      compression-type: lz4
+      properties:
+        max.in.flight.requests.per.connection: 5
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+      concurrency: 10
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost:3306}/logging_db?rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASS:}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 3000
+
+kafka:
+  topic:
+    transactions: transaction-events
+    dead-letter: transaction-dead-letter
