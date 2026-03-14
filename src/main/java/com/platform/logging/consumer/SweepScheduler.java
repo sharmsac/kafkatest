@@ -29,11 +29,18 @@ public class SweepScheduler {
                     consumer.getPayloadBuffer().add(partial.toPayload());
                 }
 
-                consumer.getFlushedIds().put(entry.getKey(), true);
+                consumer.getFlushedIds().put(entry.getKey(), System.currentTimeMillis());
                 return true;
             }
             return false;
         });
+    }
+
+    // -- EVICT: every 10s -- remove expired entries from flushedIds --
+    @Scheduled(fixedRate = 10_000)
+    public void evictExpiredFlushedIds() {
+        long cutoff = System.currentTimeMillis() - TransactionAssemblyConsumer.FLUSHED_TTL_MS;
+        consumer.getFlushedIds().entrySet().removeIf(e -> e.getValue() < cutoff);
     }
 
     // -- METRICS: every 60s -- log buffer sizes for monitoring/alerting --

@@ -1,6 +1,5 @@
 package com.platform.logging.consumer;
 
-import com.google.common.cache.*;
 import com.platform.logging.model.*;
 import com.platform.logging.handler.LateArrivalHandler;
 import lombok.*;
@@ -38,10 +37,8 @@ public class TransactionAssemblyConsumer {
         = Collections.synchronizedList(new ArrayList<>());
 
     // -- Recently flushed IDs: late arrivals within 30s trigger UPDATE --
-    private final Cache<String, Boolean> flushedIds = CacheBuilder.newBuilder()
-        .expireAfterWrite(30, TimeUnit.SECONDS)
-        .maximumSize(2_000_000)
-        .build();
+    static final long FLUSHED_TTL_MS = 30_000;
+    private final ConcurrentHashMap<String, Long> flushedIds = new ConcurrentHashMap<>();
 
     private final LateArrivalHandler lateArrivalHandler;
     private final KafkaListenerEndpointRegistry registry;
@@ -64,7 +61,7 @@ public class TransactionAssemblyConsumer {
         String bufferKey = event.getRequestId() + ":" + event.getOrgId();
 
         // 1. Late arrival -- record already flushed to MySQL
-        if (flushedIds.getIfPresent(bufferKey) != null) {
+        if (flushedIds.containsKey(bufferKey)) {
             lateArrivalHandler.handle(event);
             ack.acknowledge();
             return;
@@ -95,7 +92,7 @@ public class TransactionAssemblyConsumer {
                 payloadBuffer.add(partial.toPayload());
             }
 
-            flushedIds.put(bufferKey, true);
+            flushedIds.put(bufferKey, System.currentTimeMillis());
         }
 
         ack.acknowledge();
@@ -124,7 +121,7 @@ public class TransactionAssemblyConsumer {
                 txn.setIncomplete(true);
                 coldBuffer.add(txn);
                 assemblyBuffer.remove(e.getKey());
-                flushedIds.put(e.getKey(), true);
+                flushedIds.put(e.getKey(), System.currentTimeMillis());
             });
         log.warn("Evicted {} oldest assembly records to cold buffer", count);
     }
