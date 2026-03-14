@@ -11,7 +11,8 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "com.platform.logging.model"
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: "com.platform.logging.model.TransactionEvent"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -27,7 +28,7 @@ spring:
       concurrency: 10
 
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost:3306}/logging_db?rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${DB_HOST:localhost:3307}/logging_db?rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USER:root}
     password: ${DB_PASS:}
     hikari:

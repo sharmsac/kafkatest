@@ -48,10 +48,10 @@ public class TransactionSearchController {
                    total_duration_ms, api_duration_ms, router_duration_ms,
                    network_overhead_ms, status_code, has_router,
                    is_error, is_incomplete, apg_request_time,
-                   apg_response_time, \"date\", created_at
+                   apg_response_time, `date`, created_at
             FROM TRANSACTION
             WHERE org_id = ?
-              AND \"date\" BETWEEN ? AND ?
+              AND `date` BETWEEN ? AND ?
             """);
 
         List<Object> params = new ArrayList<>(
@@ -110,7 +110,7 @@ public class TransactionSearchController {
 
         StringBuilder sql = new StringBuilder("""
             SELECT request_id, org_name, service_name, api_name,
-                   total_duration_ms, status_code, \"date\", `month`,
+                   total_duration_ms, status_code, `date`, `month`,
                    UNCOMPRESS(data_json) AS data_json
             FROM ARCHIVE_TRANSACTION
             WHERE org_id = ?
@@ -122,7 +122,7 @@ public class TransactionSearchController {
 
         if (statusCode != null) { sql.append(" AND status_code = ?"); params.add(statusCode); }
 
-        sql.append(" ORDER BY \"date\" DESC LIMIT ? OFFSET ?");
+        sql.append(" ORDER BY `date` DESC LIMIT ? OFFSET ?");
         params.add(size);
         params.add(page * size);
 

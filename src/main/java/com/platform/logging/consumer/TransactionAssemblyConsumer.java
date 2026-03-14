@@ -5,7 +5,6 @@ import com.platform.logging.model.*;
 import com.platform.logging.handler.LateArrivalHandler;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.support.Acknowledgment;
@@ -22,7 +21,7 @@ public class TransactionAssemblyConsumer {
     private static final int MAX_ASSEMBLY_BUFFER = 500_000;
     private static final int MAX_COLD_BUFFER     = 50_000;
 
-    // -- Assembly: requestId -> partial record --
+    // -- Assembly: requestId:orgId -> partial record --
     private final ConcurrentHashMap<String, PartialTransaction> assemblyBuffer
         = new ConcurrentHashMap<>();
 
@@ -44,8 +43,14 @@ public class TransactionAssemblyConsumer {
         .maximumSize(2_000_000)
         .build();
 
-    @Autowired private LateArrivalHandler             lateArrivalHandler;
-    @Autowired private KafkaListenerEndpointRegistry registry;
+    private final LateArrivalHandler lateArrivalHandler;
+    private final KafkaListenerEndpointRegistry registry;
+
+    public TransactionAssemblyConsumer(LateArrivalHandler lateArrivalHandler,
+                                       KafkaListenerEndpointRegistry registry) {
+        this.lateArrivalHandler = lateArrivalHandler;
+        this.registry = registry;
+    }
 
     // ===============================================================
     //  Main consumer loop
@@ -56,10 +61,10 @@ public class TransactionAssemblyConsumer {
         concurrency = "10"
     )
     public void consume(TransactionEvent event, Acknowledgment ack) {
-        String requestId = event.getRequestId();
+        String bufferKey = event.getRequestId() + ":" + event.getOrgId();
 
         // 1. Late arrival -- record already flushed to MySQL
-        if (flushedIds.getIfPresent(requestId) != null) {
+        if (flushedIds.getIfPresent(bufferKey) != null) {
             lateArrivalHandler.handle(event);
             ack.acknowledge();
             return;
@@ -78,19 +83,19 @@ public class TransactionAssemblyConsumer {
 
         // 4. Normal assembly
         PartialTransaction partial = assemblyBuffer
-            .computeIfAbsent(requestId, k -> new PartialTransaction(requestId));
+            .computeIfAbsent(bufferKey, k -> new PartialTransaction(event.getRequestId()));
         partial.merge(event);
 
         // 5. Minimum fields met -> move to hot buffer
         if (partial.hasMinimumFields()) {
-            assemblyBuffer.remove(requestId);
+            assemblyBuffer.remove(bufferKey);
             hotBuffer.add(partial.toTransaction());
 
             if (partial.shouldWritePayload()) {
                 payloadBuffer.add(partial.toPayload());
             }
 
-            flushedIds.put(requestId, true);
+            flushedIds.put(bufferKey, true);
         }
 
         ack.acknowledge();

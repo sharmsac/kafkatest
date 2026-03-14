@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.UUID;
 
-@Component
+@Component("loggingRequestContextFilter")
 @Order(1)   // run before any other filter
 public class RequestContextFilter implements Filter {
 

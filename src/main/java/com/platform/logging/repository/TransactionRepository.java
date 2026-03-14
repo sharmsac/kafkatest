@@ -19,7 +19,7 @@ public class TransactionRepository {
             api_request_time, api_response_time,
             has_router, total_duration_ms, api_duration_ms,
             router_duration_ms, network_overhead_ms,
-            esp_x_header, status_code, is_error, is_incomplete, "date"
+            esp_x_header, status_code, is_error, is_incomplete, `date`
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE
             apg_response_time    = COALESCE(VALUES(apg_response_time),    apg_response_time),

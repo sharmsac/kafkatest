@@ -59,8 +59,8 @@ public class TransactionLoggingAspect {
                 .publishedAt(System.currentTimeMillis())
                 .build();
 
-            // KEY = requestId -> all events land on same Kafka partition
-            kafkaTemplate.send(topic, requestId, event);
+            String partitionKey = requestId + ":" + orgId;
+            kafkaTemplate.send(topic, partitionKey, event);
         }
 
         return result;
@@ -90,7 +90,8 @@ public class TransactionLoggingAspect {
                 .publishedAt(System.currentTimeMillis())
                 .build();
 
-            kafkaTemplate.send(topic, event.getRequestId(), event);
+            String partitionKey = event.getRequestId() + ":" + RequestContext.getOrgId();
+            kafkaTemplate.send(topic, partitionKey, event);
         }
     }
 

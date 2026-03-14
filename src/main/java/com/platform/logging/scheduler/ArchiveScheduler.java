@@ -60,7 +60,7 @@ public class ArchiveScheduler {
         jdbc.update("""
             INSERT IGNORE INTO ARCHIVE_TRANSACTION
                 (request_id, org_id, org_name, service_name, api_name,
-                 total_duration_ms, status_code, data_json, \"date\", `month`)
+                 total_duration_ms, status_code, data_json, `date`, `month`)
             SELECT
                 request_id, org_id, org_name, service_name, api_name,
                 total_duration_ms, status_code,
@@ -76,10 +76,10 @@ public class ArchiveScheduler {
                     'is_error',           is_error,
                     'network_overhead_ms', network_overhead_ms
                 )),
-                \"date\",
-                DATE_FORMAT(\"date\", '%Y-%m-01')
+                `date`,
+                DATE_FORMAT(`date`, '%Y-%m-01')
             FROM TRANSACTION
-            WHERE \"date\" = ?
+            WHERE `date` = ?
             """, archiveDate);
 
         // Drop partitions (instant operation)
